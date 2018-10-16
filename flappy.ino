@@ -10,6 +10,8 @@
 //
 // Developed and tested with an Arduino UNO and a Sainsmart 1.8" TFT screen.
 //
+// Changes - Switch press method, yield(), watchdog reset
+//
 // TODO: - debounce button ?
 //
 // Dependencies:
@@ -105,7 +107,7 @@ static struct BIRD {
 } bird;
 // pipe structure
 static struct PIPE {
-  char x, gap_y;
+  short x, gap_y;
   unsigned int col;
 } pipe;
 
@@ -126,7 +128,7 @@ static short tmpx, tmpy;
 // ---------------
 void setup() {
   // initialize the push button on pin 2 as an input
-  DDRD &= ~(1<<PD2);
+  pinMode(5, INPUT);
   // initialize a ST7735S chip, black tab
   TFT.initR(INITR_BLACKTAB);
 }
@@ -172,12 +174,13 @@ void game_loop() {
   unsigned char px;
   
   while (1) {
+    wdt_reset();
     loops = 0;
     while( millis() > next_game_tick && loops < MAX_FRAMESKIP) {
       // ===============
       // input
       // ===============
-      if ( !(PIND & (1<<PD2)) ) {
+      if ( !(digitalRead(5)) ) {
         // if the bird is not too close to the top of the screen apply jump force
         if (bird.y > BIRDH2*0.5) bird.vel_y = -JUMP_FORCE;
         // else zero velocity
@@ -316,12 +319,13 @@ void game_start() {
   TFT.println("-BIRD-");
   TFT.setTextSize(0);
   TFT.setCursor( 10, TFTH2 - 28);
-  TFT.println("ATMEGA328");
+  TFT.println("ESP8266");
   TFT.setCursor( TFTW2 - (12*3) - 1, TFTH2 + 34);
   TFT.println("press button");
   while (1) {
     // wait for push button
-    if ( !(PIND & (1<<PD2)) ) break;
+    yield();
+    if (digitalRead(5) == LOW ) break;
   }
   
   // init game settings
@@ -366,7 +370,8 @@ void game_over() {
   TFT.println("press button");
   while (1) {
     // wait for push button
-    if ( !(PIND & (1<<PD2)) ) break;
+    yield();
+    if (digitalRead(5) == LOW ) break;
   }
 }
 
